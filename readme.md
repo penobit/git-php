@@ -280,6 +280,3 @@ $repo->setRemoteBranches('origin', [
 ```
 
 ------------------------------
-
-License: [New BSD License](license.md)
-<br>Author: Jan Pecha, https://www.janpecha.cz/
