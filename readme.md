@@ -1,10 +1,10 @@
 Git-PHP
 =======
 
-[![Downloads this Month](https://img.shields.io/packagist/dm/czproject/git-php.svg)](https://packagist.org/packages/czproject/git-php)
-[![Latest Stable Version](https://poser.pugx.org/czproject/git-php/v/stable)](https://github.com/czproject/git-php/releases)
-[![License](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://github.com/czproject/git-php/blob/master/license.md)
-[![Tests Status](https://github.com/czproject/git-php/workflows/Tests/badge.svg)](https://github.com/czproject/git-php/actions)
+[![Downloads this Month](https://img.shields.io/packagist/dm/penobit/git-php.svg)](https://packagist.org/packages/penobit/git-php)
+[![Latest Stable Version](https://poser.pugx.org/penobit/git-php/v/stable)](https://github.com/penobit/git-php/releases)
+[![License](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://github.com/penobit/git-php/blob/master/license.md)
+[![Tests Status](https://github.com/penobit/git-php/workflows/Tests/badge.svg)](https://github.com/penobit/git-php/actions)
 
 
 Library for work with Git repository in PHP.
@@ -17,7 +17,7 @@ Installation
 [Download a latest package](https://github.com/penobit/git-php/releases) or use [Composer](http://getcomposer.org/):
 
 ```
-composer require czproject/git-php
+composer require penobit/git-php
 ```
 
 Library requires PHP 5.6 or later and `git` client (path to Git must be in system variable `PATH`).
@@ -71,10 +71,10 @@ Cloning of repository
 
 ``` php
 // Cloning of repository into subdirectory 'git-php' in current working directory
-$repo = $git->cloneRepository('https://github.com/czproject/git-php.git');
+$repo = $git->cloneRepository('https://github.com/penobit/git-php.git');
 
 // Cloning of repository into own directory
-$repo = $git->cloneRepository('https://github.com/czproject/git-php.git', '/path/to/my/subdir');
+$repo = $git->cloneRepository('https://github.com/penobit/git-php.git', '/path/to/my/subdir');
 ```
 
 
@@ -204,7 +204,7 @@ $repo->fetch('origin', ['master']);
 
 // adds remote repository
 $repo->addRemote('remote-name', 'repository-url', ['--options']);
-$repo->addRemote('origin', 'git@github.com:czproject/git-php.git');
+$repo->addRemote('origin', 'git@github.com:penobit/git-php.git');
 
 // renames remote
 $repo->renameRemote('old-remote-name', 'new-remote-name');
@@ -216,7 +216,7 @@ $repo->removeRemote('origin');
 
 // changes remote URL
 $repo->setRemoteUrl('remote-name', 'new-repository-url');
-$repo->setRemoteUrl('upstream', 'https://github.com/czproject/git-php.git');
+$repo->setRemoteUrl('upstream', 'https://github.com/penobit/git-php.git');
 ```
 
 **Troubleshooting - How to provide username and password for commands**
