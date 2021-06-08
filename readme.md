@@ -14,7 +14,7 @@ Library for work with Git repository in PHP.
 Installation
 ------------
 
-[Download a latest package](https://github.com/czproject/git-php/releases) or use [Composer](http://getcomposer.org/):
+[Download a latest package](https://github.com/penobit/git-php/releases) or use [Composer](http://getcomposer.org/):
 
 ```
 composer require czproject/git-php
