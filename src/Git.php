@@ -1,150 +1,143 @@
 <?php
 
-	namespace Penobit\Git;
+namespace Penobit\Git;
 
+    class Git {
+        /** @var IRunner */
+        protected $runner;
 
-	class Git
-	{
-		/** @var IRunner */
-		protected $runner;
+        public function __construct(IRunner $runner = null) {
+            $this->runner = null !== $runner ? $runner : new Runners\CliRunner();
+        }
 
+        /**
+         * @param string $directory
+         *
+         * @return GitRepository
+         */
+        public function open($directory) {
+            return new GitRepository($directory, $this->runner);
+        }
 
-		public function  __construct(IRunner $runner = NULL)
-		{
-			$this->runner = $runner !== NULL ? $runner : new Runners\CliRunner;
-		}
+        /**
+         * Init repo in directory.
+         *
+         * @param string $directory
+         * @param null|array<mixed> $params
+         *
+         * @throws GitException
+         *
+         * @return GitRepository
+         */
+        public function init($directory, array $params = null) {
+            if (is_dir("{$directory}/.git")) {
+                throw new GitException("Repo already exists in {$directory}.");
+            }
 
+            if (!is_dir($directory) && !@mkdir($directory, 0777, true)) { // intentionally @; not atomic; from Nette FW
+                throw new GitException("Unable to create directory '{$directory}'.");
+            }
 
-		/**
-		 * @param  string $directory
-		 * @return GitRepository
-		 */
-		public function open($directory)
-		{
-			return new GitRepository($directory, $this->runner);
-		}
+            try {
+                $this->run($directory, [
+                    'init',
+                    $params,
+                    $directory,
+                ]);
+            } catch (GitException $e) {
+                throw new GitException("Git init failed (directory {$directory}).", $e->getCode(), $e);
+            }
 
+            return $this->open($directory);
+        }
 
-		/**
-		 * Init repo in directory
-		 * @param  string $directory
-		 * @param  array<mixed>|NULL $params
-		 * @return GitRepository
-		 * @throws GitException
-		 */
-		public function init($directory, array $params = NULL)
-		{
-			if (is_dir("$directory/.git")) {
-				throw new GitException("Repo already exists in $directory.");
-			}
+        /**
+         * Clones GIT repository from $url into $directory.
+         *
+         * @param string $url
+         * @param null|string $directory
+         * @param null|array<mixed> $params
+         *
+         * @throws GitException
+         *
+         * @return GitRepository
+         */
+        public function cloneRepository($url, $directory = null, array $params = null) {
+            if (null !== $directory && is_dir("{$directory}/.git")) {
+                throw new GitException("Repo already exists in {$directory}.");
+            }
 
-			if (!is_dir($directory) && !@mkdir($directory, 0777, TRUE)) { // intentionally @; not atomic; from Nette FW
-				throw new GitException("Unable to create directory '$directory'.");
-			}
+            $cwd = $this->runner->getCwd();
 
-			try {
-				$this->run($directory, [
-					'init',
-					$params,
-					$directory
-				]);
+            if (null === $directory) {
+                $directory = Helpers::extractRepositoryNameFromUrl($url);
+                $directory = "{$cwd}/{$directory}";
+            } elseif (!Helpers::isAbsolute($directory)) {
+                $directory = "{$cwd}/{$directory}";
+            }
 
-			} catch (GitException $e) {
-				throw new GitException("Git init failed (directory $directory).", $e->getCode(), $e);
-			}
+            if (null === $params) {
+                $params = '-q';
+            }
 
-			return $this->open($directory);
-		}
+            try {
+                $this->run($cwd, [
+                    'clone',
+                    $params,
+                    $url,
+                    $directory,
+                ]);
+            } catch (GitException $e) {
+                $stderr = '';
+                $result = $e->getRunnerResult();
 
+                if (null !== $result && $result->hasErrorOutput()) {
+                    $stderr = implode(PHP_EOL, $result->getErrorOutput());
+                }
 
-		/**
-		 * Clones GIT repository from $url into $directory
-		 * @param  string $url
-		 * @param  string|NULL $directory
-		 * @param  array<mixed>|NULL $params
-		 * @return GitRepository
-		 * @throws GitException
-		 */
-		public function cloneRepository($url, $directory = NULL, array $params = NULL)
-		{
-			if ($directory !== NULL && is_dir("$directory/.git")) {
-				throw new GitException("Repo already exists in $directory.");
-			}
+                throw new GitException("Git clone failed (directory {$directory}).".('' !== $stderr ? ("\n{$stderr}") : ''));
+            }
 
-			$cwd = $this->runner->getCwd();
+            return $this->open($directory);
+        }
 
-			if ($directory === NULL) {
-				$directory = Helpers::extractRepositoryNameFromUrl($url);
-				$directory = "$cwd/$directory";
+        /**
+         * @param string $url
+         * @param null|array<string> $refs
+         *
+         * @return bool
+         */
+        public function isRemoteUrlReadable($url, array $refs = null) {
+            $result = $this->runner->run($this->runner->getCwd(), [
+                'ls-remote',
+                '--heads',
+                '--quiet',
+                '--exit-code',
+                $url,
+                $refs,
+            ], [
+                'GIT_TERMINAL_PROMPT' => 0,
+            ]);
 
-			} elseif(!Helpers::isAbsolute($directory)) {
-				$directory = "$cwd/$directory";
-			}
+            return $result->isOk();
+        }
 
-			if ($params === NULL) {
-				$params = '-q';
-			}
+        /**
+         * @param string $cwd
+         * @param array<mixed> $args
+         * @param array<string, scalar> $env
+         *
+         * @throws GitException
+         *
+         * @return RunnerResult
+         */
+        private function run($cwd, array $args, array $env = null) {
+            $result = $this->runner->run($cwd, $args, $env);
 
-			try {
-				$this->run($cwd, [
-					'clone',
-					$params,
-					$url,
-					$directory
-				]);
+            if (!$result->isOk()) {
+                throw new GitException("Command '{$result->getCommand()}' failed (exit-code {$result->getExitCode()}).", $result->getExitCode(), null, $result);
+            }
 
-			} catch (GitException $e) {
-				$stderr = '';
-				$result = $e->getRunnerResult();
-
-				if ($result !== NULL && $result->hasErrorOutput()) {
-					$stderr = implode(PHP_EOL, $result->getErrorOutput());
-				}
-
-				throw new GitException("Git clone failed (directory $directory)." . ($stderr !== '' ? ("\n$stderr") : ''));
-			}
-
-			return $this->open($directory);
-		}
-
-
-		/**
-		 * @param  string $url
-		 * @param  array<string>|NULL $refs
-		 * @return bool
-		 */
-		public function isRemoteUrlReadable($url, array $refs = NULL)
-		{
-			$result = $this->runner->run($this->runner->getCwd(), [
-				'ls-remote',
-				'--heads',
-				'--quiet',
-				'--exit-code',
-				$url,
-				$refs,
-			], [
-				'GIT_TERMINAL_PROMPT' => 0,
-			]);
-
-			return $result->isOk();
-		}
-
-
-		/**
-		 * @param  string $cwd
-		 * @param  array<mixed> $args
-		 * @param  array<string, scalar> $env
-		 * @return RunnerResult
-		 * @throws GitException
-		 */
-		private function run($cwd, array $args, array $env = NULL)
-		{
-			$result = $this->runner->run($cwd, $args, $env);
-
-			if (!$result->isOk()) {
-				throw new GitException("Command '{$result->getCommand()}' failed (exit-code {$result->getExitCode()}).", $result->getExitCode(), NULL, $result);
-			}
-
-			return $result;
-		}
-	}
+            return $result;
+        }
+    }

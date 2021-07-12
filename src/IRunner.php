@@ -1,21 +1,19 @@
 <?php
 
-	namespace Penobit\Git;
+namespace Penobit\Git;
 
+    interface IRunner {
+        /**
+         * @param string $cwd
+         * @param array<mixed> $args
+         * @param null|array<string, scalar> $env
+         *
+         * @return RunnerResult
+         */
+        public function run($cwd, array $args, array $env = null);
 
-	interface IRunner
-	{
-		/**
-		 * @param  string $cwd
-		 * @param  array<mixed> $args
-		 * @param  array<string, scalar>|NULL $env
-		 * @return RunnerResult
-		 */
-		function run($cwd, array $args, array $env = NULL);
-
-
-		/**
-		 * @return string
-		 */
-		function getCwd();
-	}
+        /**
+         * @return string
+         */
+        public function getCwd();
+    }

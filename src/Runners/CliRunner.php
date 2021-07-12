@@ -1,117 +1,109 @@
 <?php
 
-	namespace Penobit\Git\Runners;
+namespace Penobit\Git\Runners;
 
-	use Penobit\Git\CommandProcessor;
-	use Penobit\Git\GitException;
-	use Penobit\Git\IRunner;
-	use Penobit\Git\RunnerResult;
+    use Penobit\Git\CommandProcessor;
+    use Penobit\Git\GitException;
+    use Penobit\Git\IRunner;
+    use Penobit\Git\RunnerResult;
 
+    class CliRunner implements IRunner {
+        /** @var string */
+        private $gitBinary;
 
-	class CliRunner implements IRunner
-	{
-		/** @var string */
-		private $gitBinary;
+        /** @var CommandProcessor */
+        private $commandProcessor;
 
-		/** @var CommandProcessor */
-		private $commandProcessor;
+        /**
+         * @param string $gitBinary
+         */
+        public function __construct($gitBinary = 'git') {
+            $this->gitBinary = $gitBinary;
+            $this->commandProcessor = new CommandProcessor();
+        }
 
+        /**
+         * @return RunnerResult
+         */
+        public function run($cwd, array $args, array $env = null) {
+            if (!is_dir($cwd)) {
+                throw new GitException("Directory '{$cwd}' not found");
+            }
 
-		/**
-		 * @param  string $gitBinary
-		 */
-		public function __construct($gitBinary = 'git')
-		{
-			$this->gitBinary = $gitBinary;
-			$this->commandProcessor = new CommandProcessor;
-		}
+            $descriptorspec = [
+                0 => ['pipe', 'r'], // stdin
+                1 => ['pipe', 'w'], // stdout
+                2 => ['pipe', 'w'], // stderr
+            ];
 
+            $pipes = [];
+            $command = $this->commandProcessor->process($this->gitBinary, $args);
+            $process = proc_open($command, $descriptorspec, $pipes, $cwd, $env, [
+                'bypass_shell' => true,
+            ]);
 
-		/**
-		 * @return RunnerResult
-		 */
-		public function run($cwd, array $args, array $env = NULL)
-		{
-			if (!is_dir($cwd)) {
-				throw new GitException("Directory '$cwd' not found");
-			}
+            if (!$process) {
+                throw new GitException("Executing of command '{$command}' failed (directory {$cwd}).");
+            }
 
-			$descriptorspec = [
-				0 => ['pipe', 'r'], // stdin
-				1 => ['pipe', 'w'], // stdout
-				2 => ['pipe', 'w'], // stderr
-			];
+            // Reset output and error
+            stream_set_blocking($pipes[1], false);
+            stream_set_blocking($pipes[2], false);
+            $stdout = '';
+            $stderr = '';
 
-			$pipes = [];
-			$command = $this->commandProcessor->process($this->gitBinary, $args);
-			$process = proc_open($command, $descriptorspec, $pipes, $cwd, $env, [
-				'bypass_shell' => TRUE,
-			]);
+            while (true) {
+                // Read standard output
+                $stdoutOutput = stream_get_contents($pipes[1]);
 
-			if (!$process) {
-				throw new GitException("Executing of command '$command' failed (directory $cwd).");
-			}
+                if (\is_string($stdoutOutput)) {
+                    $stdout .= $stdoutOutput;
+                }
 
-			// Reset output and error
-			stream_set_blocking($pipes[1], FALSE);
-			stream_set_blocking($pipes[2], FALSE);
-			$stdout = '';
-			$stderr = '';
+                // Read error output
+                $stderrOutput = stream_get_contents($pipes[2]);
 
-			while (TRUE) {
-				// Read standard output
-				$stdoutOutput = stream_get_contents($pipes[1]);
+                if (\is_string($stderrOutput)) {
+                    $stderr .= $stderrOutput;
+                }
 
-				if (is_string($stdoutOutput)) {
-					$stdout .= $stdoutOutput;
-				}
+                // We are done
+                if ((feof($pipes[1]) || false === $stdoutOutput) && (feof($pipes[2]) || false === $stderrOutput)) {
+                    break;
+                }
+            }
 
-				// Read error output
-				$stderrOutput = stream_get_contents($pipes[2]);
+            $returnCode = proc_close($process);
 
-				if (is_string($stderrOutput)) {
-					$stderr .= $stderrOutput;
-				}
+            return new RunnerResult($command, $returnCode, $this->convertOutput($stdout), $this->convertOutput($stderr));
+        }
 
-				// We are done
-				if ((feof($pipes[1]) || $stdoutOutput === FALSE) && (feof($pipes[2]) || $stderrOutput === FALSE)) {
-					break;
-				}
-			}
+        /**
+         * @return string
+         */
+        public function getCwd() {
+            $cwd = getcwd();
 
-			$returnCode = proc_close($process);
-			return new RunnerResult($command, $returnCode, $this->convertOutput($stdout), $this->convertOutput($stderr));
-		}
+            if (!\is_string($cwd)) {
+                throw new \Penobit\Git\InvalidStateException('Getting of CWD failed.');
+            }
 
+            return $cwd;
+        }
 
-		/**
-		 * @return string
-		 */
-		public function getCwd()
-		{
-			$cwd = getcwd();
+        /**
+         * @param string $output
+         *
+         * @return string[]
+         */
+        protected function convertOutput($output) {
+            $output = str_replace(["\r\n", "\r"], "\n", $output);
+            $output = rtrim($output, "\n");
 
-			if (!is_string($cwd)) {
-				throw new \Penobit\Git\InvalidStateException('Getting of CWD failed.');
-			}
+            if ('' === $output) {
+                return [];
+            }
 
-			return $cwd;
-		}
-
-
-		/**
-		 * @param  string $output
-		 * @return string[]
-		 */
-		protected function convertOutput($output)
-		{
-			$output = str_replace(["\r\n", "\r"], "\n", $output);
-			$output = rtrim($output, "\n");
-
-			if ($output === '') {
-				return [];
-			}
-
-			return explode("\n", $output);
-		}
-	}
+            return explode("\n", $output);
+        }
+    }

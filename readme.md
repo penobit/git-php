@@ -6,28 +6,26 @@ Git-PHP
 [![License](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://github.com/penobit/git-php/blob/master/license.md)
 [![Tests Status](https://github.com/penobit/git-php/workflows/Tests/badge.svg)](https://github.com/penobit/git-php/actions)
 
-
 Library for work with Git repository in PHP.
-
-
 
 Installation
 ------------
 
 [Download a latest package](https://github.com/penobit/git-php/releases) or use [Composer](http://getcomposer.org/):
 
-```
+```shell
 composer require penobit/git-php
 ```
 
 Library requires PHP 5.6 or later and `git` client (path to Git must be in system variable `PATH`).
 
-Git installers:
+Download Git installer:
 
-* for Linux - https://git-scm.com/download/linux
-* for Windows - https://git-scm.com/download/win
-* for others - https://git-scm.com/downloads
-
+> for [Linux](https://git-scm.com/download/linux)
+>  
+> for [Windows](https://git-scm.com/download/win)
+>  
+> for [others](https://git-scm.com/downloads)
 
 Usage
 -----
@@ -40,15 +38,14 @@ $repo = $git->open('/path/to/repo');
 // create a new file in repo
 $filename = $repo->getRepositoryPath() . '/readme.txt';
 file_put_contents($filename, "Lorem ipsum
-	dolor
-	sit amet
+    dolor
+    sit amet
 ");
 
 // commit
 $repo->addFile($filename);
 $repo->commit('init commit');
 ```
-
 
 Initialization of empty repository
 ----------------------------------
@@ -61,10 +58,9 @@ With parameters:
 
 ``` php
 $repo = $git->init('/path/to/repo-directory', [
-	'--bare', // creates bare repo
+    '--bare', // creates bare repo
 ]);
 ```
-
 
 Cloning of repository
 ---------------------
@@ -76,7 +72,6 @@ $repo = $git->cloneRepository('https://github.com/penobit/git-php.git');
 // Cloning of repository into own directory
 $repo = $git->cloneRepository('https://github.com/penobit/git-php.git', '/path/to/my/subdir');
 ```
-
 
 Basic operations
 ----------------
@@ -110,8 +105,6 @@ $repo->removeFile(['file3.txt', 'file4.txt']);
 $repo->addAllChanges();
 ```
 
-
-
 Branches
 --------
 
@@ -135,7 +128,6 @@ $repo->createBranch('patch-1', TRUE);
 $repo->removeBranch('branch-name');
 ```
 
-
 Tags
 ----
 
@@ -147,7 +139,7 @@ $repo->getTags();
 $repo->createTag('v1.0.0');
 $repo->createTag('v1.0.0', $options);
 $repo->createTag('v1.0.0', [
-	'-m' => 'message',
+    '-m' => 'message',
 ]);
 
 // renames tag
@@ -156,7 +148,6 @@ $repo->renameTag('old-tag-name', 'new-tag-name');
 // removes tag
 $repo->removeTag('tag-name');
 ```
-
 
 History
 -------
@@ -183,8 +174,7 @@ $commit->getDate();
 $commit = $repo->getLastCommit();
 ```
 
-
-Remotes
+## Remotes
 -------
 
 ``` php
@@ -219,18 +209,24 @@ $repo->setRemoteUrl('remote-name', 'new-repository-url');
 $repo->setRemoteUrl('upstream', 'https://github.com/penobit/git-php.git');
 ```
 
-**Troubleshooting - How to provide username and password for commands**
+## Troubleshooting - How to provide username and password for commands
 
 1) use SSH instead of HTTPS - https://stackoverflow.com/a/8588786
 2) store credentials to *Git Credential Storage*
-	* http://www.tilcode.com/push-github-without-entering-username-password-windows-git-bash/
-	* https://help.github.com/articles/caching-your-github-password-in-git/
-	* https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage
-3) insert user and password into remote URL - https://stackoverflow.com/a/16381160
-	* `git remote add origin https://user:password@server/path/repo.git`
-4) for `push()` you can use `--repo` argument - https://stackoverflow.com/a/12193555
-	* `$git->push(NULL, ['--repo' => 'https://user:password@server/path/repo.git']);`
 
+- [Push github without entering username password windows git bash](http://www.tilcode.com/push-github-without-entering-username-password-windows-git-bash/)
+
+- [Caching your github password in git](https://help.github.com/articles/caching-your-github-password-in-git/)
+
+- [Git Tools Credential Storage](https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage)
+
+1) [insert user and password into remote URL](https://stackoverflow.com/a/16381160)
+
+- `git remote add origin https://user:password@server/path/repo.git`
+
+2) [for `push()` you can use `--repo` argument](https://stackoverflow.com/a/12193555)
+
+- `$git->push(NULL, ['--repo' => 'https://user:password@server/path/repo.git']);`
 
 Other commands
 --------------
@@ -246,24 +242,20 @@ $repo->execute('remote', 'set-branches', $originName, $branches);
 ```
 
 
-Custom methods
+## Custom methods
 --------------
 
 You can create custom methods. For example:
 
 ``` php
-class OwnGit extends \Penobit\Git\Git
-{
-	public function open($directory)
-	{
+class OwnGit extends \Penobit\Git\Git {
+	public function open($directory) {
 		return new OwnGitRepository($directory, $this->runner);
 	}
 }
 
-class OwnGitRepository extends \Penobit\Git\GitRepository
-{
-	public function setRemoteBranches($name, array $branches)
-	{
+class OwnGitRepository extends \Penobit\Git\GitRepository {
+	public function setRemoteBranches($name, array $branches) {
 		$this->run('remote', 'set-branches', $name, $branches);
 		return $this;
 	}
@@ -278,5 +270,3 @@ $repo->setRemoteBranches('origin', [
 	'branch-2',
 ]);
 ```
-
-------------------------------
